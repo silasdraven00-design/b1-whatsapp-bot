@@ -127,10 +127,19 @@ app.post('/webhook', async (req, res) => {
 // ============================================
 async function getClaudeResponse(userMessage) {
   try {
+    // Debug: verificar API key
+    const apiKey = CONFIG.CLAUDE_API_KEY;
+    console.log(`🔑 Claude API Key (primeiros 20 chars): ${apiKey.substring(0, 20)}...`);
+    console.log(`🔑 Claude API Key (últimos 10 chars): ...${apiKey.substring(apiKey.length - 10)}`);
+    console.log(`🔑 Tamanho da key: ${apiKey.length} caracteres`);
+    
+    const modelName = 'claude-3-5-sonnet-20241022';
+    console.log(`🤖 Tentando usar modelo: ${modelName}`);
+    
     const response = await axios.post(
       'https://api.anthropic.com/v1/messages',
       {
-        model: 'claude-2.1',
+        model: modelName,
         max_tokens: 1024,
         system: B1_CONTEXT,
         messages: [
