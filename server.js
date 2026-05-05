@@ -126,44 +126,65 @@ app.post('/webhook', async (req, res) => {
 // INTEGRAÇÃO COM CLAUDE API
 // ============================================
 async function getClaudeResponse(userMessage) {
-  try {
-    // Debug: verificar API key
-    const apiKey = CONFIG.CLAUDE_API_KEY;
-    console.log(`🔑 Claude API Key (primeiros 20 chars): ${apiKey.substring(0, 20)}...`);
-    console.log(`🔑 Claude API Key (últimos 10 chars): ...${apiKey.substring(apiKey.length - 10)}`);
-    console.log(`🔑 Tamanho da key: ${apiKey.length} caracteres`);
-    
-    const modelName = 'claude-3-5-sonnet-20241022';
-    console.log(`🤖 Tentando usar modelo: ${modelName}`);
-    
-    const response = await axios.post(
-      'https://api.anthropic.com/v1/messages',
-      {
-        model: modelName,
-        max_tokens: 1024,
-        system: B1_CONTEXT,
-        messages: [
-          {
-            role: 'user',
-            content: userMessage
+  // Lista de modelos para tentar (incluindo Claude 4!)
+  const modelsToTry = [
+    // Claude 4 (mais recentes)
+    'claude-opus-4-7',
+    'claude-sonnet-4-7',
+    'claude-opus-4-20250514',
+    'claude-sonnet-4-20250514',
+    'claude-haiku-4-20250514',
+    // Claude 3.5
+    'claude-3-5-sonnet-20241022',
+    'claude-3-5-sonnet-20240620',
+    // Claude 3
+    'claude-3-opus-20240229',
+    'claude-3-sonnet-20240229',
+    'claude-3-haiku-20240307',
+    // Claude 2 (legado)
+    'claude-2.1',
+    'claude-2.0',
+    'claude-instant-1.2'
+  ];
+  
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`🤖 Tentando modelo: ${modelName}`);
+      
+      const response = await axios.post(
+        'https://api.anthropic.com/v1/messages',
+        {
+          model: modelName,
+          max_tokens: 1024,
+          system: B1_CONTEXT,
+          messages: [
+            {
+              role: 'user',
+              content: userMessage
+            }
+          ]
+        },
+        {
+          headers: {
+            'x-api-key': CONFIG.CLAUDE_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json'
           }
-        ]
-      },
-      {
-        headers: {
-          'x-api-key': CONFIG.CLAUDE_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json'
         }
-      }
-    );
+      );
 
-    return response.data.content[0].text;
+      console.log(`✅ SUCESSO com modelo: ${modelName}`);
+      return response.data.content[0].text;
 
-  } catch (error) {
-    console.error('❌ Erro ao chamar Claude API:', error.response?.data || error.message);
-    return 'Desculpe, estou com dificuldades técnicas no momento. Por favor, entre em contato pelo telefone (71) 91990-423. 🙏';
+    } catch (error) {
+      console.log(`❌ Falha com ${modelName}: ${error.response?.data?.error?.message || error.message}`);
+      // Continua para próximo modelo
+    }
   }
+  
+  // Se nenhum modelo funcionou
+  console.error('❌ Nenhum modelo Claude funcionou!');
+  return 'Desculpe, estou com dificuldades técnicas no momento. Por favor, entre em contato pelo telefone (71) 91990-423. 🙏';
 }
 
 // ============================================
